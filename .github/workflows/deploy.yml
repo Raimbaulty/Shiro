@@ -34,7 +34,7 @@ jobs:
           release: 13.2
           prepare: |
             pkg update -f
-            pkg install -y node20 npm unzip git
+            pkg install -y npm unzip git
             npm install -g pnpm
           run: |
             pnpm install

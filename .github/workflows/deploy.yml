@@ -31,7 +31,7 @@ jobs:
         uses: vmactions/freebsd-vm@v1
         with:
           usesh: true
-          release: 14.1
+          release: 13.2
           prepare: |
             pkg update -f
             pkg install -y npm unzip git

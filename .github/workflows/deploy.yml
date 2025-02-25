@@ -34,17 +34,19 @@ jobs:
           release: 14.1
           prepare: |
             pkg update -f
-            pkg install -y node npm unzip git bash gawk gsed
-            npm install -g pnpm
+            pkg install -y wget curl git bash gawk gsed unzip
+            wget https://nodejs.org/dist/v20.12.2/node-v20.12.2-freebsd-amd64.tar.xz
+            tar -xf node-v20.12.2-freebsd-amd64.tar.xz
+            mv node-v20.12.2-freebsd-amd64 /usr/local/node
+            ln -s /usr/local/node/bin/node /usr/local/bin/node
+            ln -s /usr/local/node/bin/npm /usr/local/bin/npm
+            ln -s /usr/local/node/bin/npx /usr/local/bin/npx
+            npm install -g pnpm@9
           run: |
             git config --global --add safe.directory /home/runner/work/${{ github.repository }}/${{ github.repository }}
-            pnpm install
+            rm -rf node_modules pnpm-lock.yaml
+            pnpm install --no-verify-store-integrity
             sh ./ci-release-build.sh
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release.zip
-          path: assets/release.zip
 
   deploy:
     name: Deploy artifact

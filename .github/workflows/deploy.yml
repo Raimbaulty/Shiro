@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20.x]
+        node-version: [20]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,20 +27,18 @@ jobs:
       - name: Checkout LFS
         run: git lfs checkout
 
-      - name: Setup FreeBSD VM
+      - name: Build in FreeBSD VM
         uses: vmactions/freebsd-vm@v1
         with:
-          release: 13.2
           usesh: true
-
-      - name: Install dependencies and build
-        run: |
-          sudo pkg update -f
-          sudo pkg install -y node${{ matrix.node-version }} npm pnpm unzip
-          npm install -g pnpm
-          pnpm install
-          sh ./ci-release-build.sh
-        shell: freebsd
+          release: 13.2
+          prepare: |
+            pkg update -f
+            pkg install -y node20 npm pnpm unzip git
+            npm install -g pnpm
+          run: |
+            pnpm install
+            sh ./ci-release-build.sh
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

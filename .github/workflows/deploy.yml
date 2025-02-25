@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [22]
+        node-version: [20]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,7 +34,7 @@ jobs:
           release: 13.2
           prepare: |
             pkg update -f
-            pkg install -y npm unzip git
+            pkg install -y unzip git
             npm install -g pnpm
           run: |
             pnpm install

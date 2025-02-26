@@ -79,7 +79,6 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             set -ex
-            source $HOME/.bashrc
             basedir=$HOME/shiro
             workdir=$basedir/${{ github.sha }}
             mkdir -p $workdir

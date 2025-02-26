@@ -27,26 +27,22 @@ jobs:
       - name: Checkout LFS
         run: git lfs checkout
 
-      - name: Fix Git ownership issue
-        run: git config --global --add safe.directory /home/runner/work/Raimbaulty/Shiro
-
-      - name: Build on FreeBSD
-        uses: vmactions/freebsd-vm@v1
+      - uses: pnpm/action-setup@v2
         with:
-          usesh: true
-          mem: 4096
-          prepare: |
-            pkg update
-            pkg install -y bash curl git-lfs node npm
-            node -v
-            npm -v
-            npm install -g pnpm@9
-            npm install -g next
-          run: |
-            cd ${GITHUB_WORKSPACE}
-            git config --global --add safe.directory ${GITHUB_WORKSPACE}
-            pnpm install
-            sh ./ci-release-build.sh
+          version: 9.x.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - uses: jongwooo/next-cache@v1
+
+      - name: Install & Build
+        run: |
+          pnpm install
+          sh ./ci-release-build.sh
 
       - uses: actions/upload-artifact@v4
         with:

@@ -35,9 +35,9 @@ jobs:
           prepare: |
             pkg update -f
             pkg install -y npm unzip git
-              npm install -g pnpm@9.15.4
-              corepack enable
-              corepack prepare pnpm@9.15.4 --activate
+            npm install -g pnpm
+            pnpm store prune
+            pnpm install --force
           run: |
             pnpm install
             sh ./ci-release-build.sh

@@ -27,8 +27,8 @@ jobs:
       - name: Checkout LFS
         run: git lfs checkout
 
-      - name: Add safe directory
-        run: git config --global --add safe.directory /home/runner/work/Shiro/Shiro
+      - name: Fix Git ownership issue
+        run: git config --global --add safe.directory /home/runner/work/Raimbaulty/Shiro
 
       - name: Build on FreeBSD
         uses: vmactions/freebsd-vm@v1
@@ -42,7 +42,6 @@ jobs:
             npm -v
             npm install -g pnpm@9
             npm install -g next
-            git config --global --add safe.directory ${GITHUB_WORKSPACE}
           run: |
             cd ${GITHUB_WORKSPACE}
             git config --global --add safe.directory ${GITHUB_WORKSPACE}

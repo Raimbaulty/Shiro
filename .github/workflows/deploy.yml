@@ -33,7 +33,11 @@ jobs:
           usesh: true
           mem: 4096
           prepare: |
-            pkg install -y bash curl git-lfs nodejs-20 npm
+            pkg update
+            pkg install -y bash curl git-lfs node npm
+            # 检查安装的 Node.js 版本
+            node -v
+            npm -v
             npm install -g pnpm@9
             npm install -g next
           run: |

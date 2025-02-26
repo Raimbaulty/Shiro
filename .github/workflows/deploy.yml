@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20]
+        node-version: [22]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,10 +34,11 @@ jobs:
           release: 13.2
           prepare: |
             pkg update -f
-            pkg install -y npm unzip git
-            npm install -g pnpm
-            pnpm store prune
-            pnpm install --force
+            pkg install -y curl unzip git
+            curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | sh
+            source ~/.nvm/nvm.sh
+            nvm install 22
+            npm install -g pnpm@9.15.4
           run: |
             pnpm install
             sh ./ci-release-build.sh

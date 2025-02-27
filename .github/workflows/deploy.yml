@@ -113,7 +113,7 @@ jobs:
             mkdir -p $basedir/.cache
             
             # Move and extract the release
-            mv /tmp/shiro/release.zip $workdir/release.zip
+            cp /tmp/shiro/release.zip $workdir/release.zip
             rm -rf /tmp/shiro
             cd $workdir
             
@@ -143,7 +143,7 @@ jobs:
             
             # Deploy using PM2
             cd $basedir
-            if ! pm2 reload ecosystem.config.js --update-env; then
+            if ! $HOME/.npm-global/bin/pm2 reload ecosystem.config.js --update-env; then
               echo "PM2 reload failed"
               exit 1
             fi
@@ -152,7 +152,7 @@ jobs:
             rm $workdir/release.zip
             
             # Save PM2 configuration
-            if ! pm2 save; then
+            if ! $HOME/.npm-global/bin/pm2 save; then
               echo "PM2 save failed"
               exit 1
             fi

@@ -3,6 +3,7 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:  # Allow manual triggering
 
 permissions:
   contents: write
@@ -15,11 +16,13 @@ jobs:
   build:
     name: Build artifact
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Prevent hanging builds
     strategy:
       matrix:
         node-version: [20.x]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
@@ -27,7 +30,8 @@ jobs:
       - name: Checkout LFS
         run: git lfs checkout
 
-      - uses: pnpm/action-setup@v2
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v2
         with:
           version: 9.x.x
 
@@ -37,28 +41,45 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
 
-      - uses: jongwooo/next-cache@v1
+      - name: Setup Next.js Cache
+        uses: jongwooo/next-cache@v1
 
-      - name: Install & Build
-        run: |
-          pnpm install
-          sh ./ci-release-build.sh
-
-      - uses: actions/upload-artifact@v4
+      - name: Install dependencies
+        run: pnpm install
+        
+      - name: Build application
+        run: sh ./ci-release-build.sh
+        
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
           name: release.zip
           path: assets/release.zip
+          retention-days: 1  # Reduce storage usage
 
   deploy:
     name: Deploy artifact
     runs-on: ubuntu-latest
     needs: build
+    timeout-minutes: 10  # Prevent hanging deployments
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
         with:
           name: release.zip
-
-      - name: SCP Transfer
+          
+      - name: Create deployment directory
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.KEY }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: |
+            mkdir -p /tmp/shiro
+            
+      - name: Transfer build artifact
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
@@ -68,8 +89,8 @@ jobs:
           port: ${{ secrets.PORT }}
           source: release.zip
           target: /tmp/shiro
-
-      - name: Remote Deployment
+          
+      - name: Deploy application
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
@@ -78,31 +99,66 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
           script: |
-            set -ex
+            set -e  # Exit immediately if a command fails
+            
+            # Source environment variables
             source $HOME/.bashrc
+            
+            # Define directories
             basedir=$HOME/shiro
             workdir=$basedir/${{ github.sha }}
+            
+            # Create directories if they don't exist
             mkdir -p $workdir
             mkdir -p $basedir/.cache
+            
+            # Move and extract the release
             mv /tmp/shiro/release.zip $workdir/release.zip
-            rm -r /tmp/shiro
+            rm -rf /tmp/shiro
             cd $workdir
-            unzip -qq -o $workdir/release.zip
+            
+            # Unzip with error handling
+            if ! unzip -qq -o $workdir/release.zip; then
+              echo "Failed to unzip release package"
+              exit 1
+            fi
+            
+            # Configure environment
             rm -rf $workdir/standalone/.env
-            ln -s $HOME/shiro/.env $workdir/standalone/.env
+            ln -sf $HOME/shiro/.env $workdir/standalone/.env
             export NEXT_SHARP_PATH=$(npm root -g)/sharp
-            # copy workdir ecosystem.config.js to basedir if not exists
+            
+            # Handle configuration files
             if [ ! -f $basedir/ecosystem.config.js ]; then
               cp $workdir/standalone/ecosystem.config.js $basedir/ecosystem.config.js
             fi
-            # https://github.com/Unitech/pm2/issues/3054
-            # symlink workdir node entry file to basedir
+            
+            # Update symlinks
             ln -sf $workdir/standalone/server.js $basedir/server.js
+            
+            # Setup cache directory
             mkdir -p $workdir/standalone/.next
             rm -rf $workdir/standalone/.next/cache
             ln -sf $basedir/.cache $workdir/standalone/.next/cache
+            
+            # Deploy using PM2
             cd $basedir
-            pm2 reload ecosystem.config.js --update-env
+            if ! pm2 reload ecosystem.config.js --update-env; then
+              echo "PM2 reload failed"
+              exit 1
+            fi
+            
+            # Clean up
             rm $workdir/release.zip
-            pm2 save
-            echo "Deployed successfully"
+            
+            # Save PM2 configuration
+            if ! pm2 save; then
+              echo "PM2 save failed"
+              exit 1
+            fi
+            
+            # Keep only the 5 most recent deployments
+            cd $basedir
+            ls -t | grep -v "^\." | tail -n +6 | xargs -r rm -rf
+            
+            echo "Deployment completed successfully"

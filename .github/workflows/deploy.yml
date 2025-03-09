@@ -102,7 +102,7 @@ jobs:
             set -e  # Exit immediately if a command fails
             
             # Source environment variables
-            source $HOME/.bashrc
+            source $HOME/.profile
             
             # Define directories
             basedir=$HOME/shiro
